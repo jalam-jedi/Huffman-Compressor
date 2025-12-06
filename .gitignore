@@ -1,0 +1,17 @@
+# Ignore the build folder we created
+build/
+
+# Ignore compiled Java class files wherever they are
+*.class
+
+# Ignore the output executables and JARs (we generate these, we don't store them)
+*.jar
+*.exe
+
+# ...BUT keep the library jar (Important! So your team has the dark mode lib)
+!lib/*.jar
+
+# Ignore temporary test files
+*.huff
+Test.txt
+Restored_*
