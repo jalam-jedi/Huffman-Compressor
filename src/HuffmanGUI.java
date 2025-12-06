@@ -3,6 +3,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.filechooser.FileSystemView;
 import javax.swing.table.DefaultTableModel;
 
 public class HuffmanGUI extends JFrame {
@@ -17,7 +19,6 @@ public class HuffmanGUI extends JFrame {
     // Colors for styling
     private final Color COLOR_PRIMARY = new Color(0, 122, 255); // Blue
     private final Color COLOR_SUCCESS = new Color(40, 167, 69); // Green
-    private final Color COLOR_BG_DARK = new Color(45, 45, 45);
 
     public HuffmanGUI() {
         setTitle("Universal Huffman Compressor");
@@ -49,7 +50,7 @@ public class HuffmanGUI extends JFrame {
         logArea = new JTextArea(6, 60);
         logArea.setEditable(false);
         logArea.setFont(new Font("Consolas", Font.PLAIN, 12));
-        logArea.setBackground(new Color(240, 240, 240)); // Light grey log
+        logArea.setBackground(new Color(240, 240, 240)); 
         
         progressBar = new JProgressBar();
         progressBar.setStringPainted(true);
@@ -60,9 +61,8 @@ public class HuffmanGUI extends JFrame {
         
         add(footerPanel, BorderLayout.SOUTH);
 
-        // Center on screen
         setLocationRelativeTo(null);
-        log("✅ System Initialized. Ready for operations.");
+        log("✅ System Initialized. Ready.");
     }
 
     private JPanel createCompressPanel() {
@@ -72,7 +72,6 @@ public class HuffmanGUI extends JFrame {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(10, 10, 10, 10);
 
-        // Step 1: File Selection
         JLabel step1 = new JLabel("Step 1: Input Source");
         step1.setFont(new Font("Segoe UI", Font.BOLD, 14));
         
@@ -80,7 +79,6 @@ public class HuffmanGUI extends JFrame {
         compressFileLabel = new JLabel("No file selected");
         compressFileLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
         
-        // Step 2: Analysis Tools
         JLabel step2 = new JLabel("Step 2: Analysis");
         step2.setFont(new Font("Segoe UI", Font.BOLD, 14));
         
@@ -90,40 +88,34 @@ public class HuffmanGUI extends JFrame {
         analysisButtons.add(viewTableBtn);
         analysisButtons.add(viewTreeBtn);
 
-        // Step 3: Action
         JLabel step3 = new JLabel("Step 3: Execute");
         step3.setFont(new Font("Segoe UI", Font.BOLD, 14));
         
-        JButton runBtn = new JButton("⚡ START COMPRESSION");
+        JButton runBtn = new JButton("💾 Save Compressed File As...");
         runBtn.setBackground(COLOR_SUCCESS);
         runBtn.setForeground(Color.WHITE);
         runBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
         runBtn.setFocusPainted(false);
 
-        // -- Layout Placement --
+        // -- Layout --
         gbc.gridx = 0; gbc.gridy = 0; panel.add(step1, gbc);
         gbc.gridy = 1; panel.add(selectBtn, gbc);
         gbc.gridy = 2; panel.add(compressFileLabel, gbc);
-        
         gbc.gridy = 3; panel.add(new JSeparator(), gbc);
-        
         gbc.gridy = 4; panel.add(step2, gbc);
         gbc.gridy = 5; panel.add(analysisButtons, gbc);
-        
         gbc.gridy = 6; panel.add(new JSeparator(), gbc);
-        
         gbc.gridy = 7; panel.add(step3, gbc);
-        gbc.gridy = 8; 
-        gbc.ipady = 15; // Taller button
-        panel.add(runBtn, gbc);
+        gbc.gridy = 8; gbc.ipady = 15; panel.add(runBtn, gbc);
 
         // -- Listeners --
         selectBtn.addActionListener(e -> {
-            JFileChooser fc = new JFileChooser(".");
+            // UPDATED: Start in User's Documents/Home folder
+            JFileChooser fc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
             if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
                 selectedCompressFile = fc.getSelectedFile();
                 compressFileLabel.setText(selectedCompressFile.getName());
-                log("File selected: " + selectedCompressFile.getName() + " (" + selectedCompressFile.length() + " bytes)");
+                log("File selected: " + selectedCompressFile.getName());
             }
         });
 
@@ -157,21 +149,18 @@ public class HuffmanGUI extends JFrame {
         runBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
         runBtn.setFocusPainted(false);
 
-        // -- Layout Placement --
         gbc.gridx = 0; gbc.gridy = 0; panel.add(step1, gbc);
         gbc.gridy = 1; panel.add(selectBtn, gbc);
         gbc.gridy = 2; panel.add(decompressFileLabel, gbc);
-        
         gbc.gridy = 3; panel.add(new JSeparator(), gbc);
-        
         gbc.gridy = 4; panel.add(step2, gbc);
-        gbc.gridy = 5; 
-        gbc.ipady = 15;
-        panel.add(runBtn, gbc);
+        gbc.gridy = 5; gbc.ipady = 15; panel.add(runBtn, gbc);
 
-        // -- Listeners --
         selectBtn.addActionListener(e -> {
-            JFileChooser fc = new JFileChooser(".");
+            // UPDATED: Start in User's Documents/Home folder
+            JFileChooser fc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+            fc.setFileFilter(new FileNameExtensionFilter("Huffman Files (.huff)", "huff"));
+            
             if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
                 selectedDecompressFile = fc.getSelectedFile();
                 decompressFileLabel.setText(selectedDecompressFile.getName());
@@ -193,18 +182,15 @@ public class HuffmanGUI extends JFrame {
         }
         
         try {
-            // 1. Read Frequencies (Quick pass)
             int[] frequencies = new int[256];
             try (FileInputStream fis = new FileInputStream(selectedCompressFile)) {
                 int b;
                 while ((b = fis.read()) != -1) frequencies[b]++;
             }
 
-            // 2. Build Tree
             HuffmanNode root = HuffmanTree.buildTree(frequencies);
 
             if (visualizeTree) {
-                // Show Graphical Tree
                 JDialog dialog = new JDialog(this, "Huffman Tree Visualization", true);
                 TreePanel treePanel = new TreePanel(root);
                 JScrollPane scroll = new JScrollPane(treePanel);
@@ -213,7 +199,6 @@ public class HuffmanGUI extends JFrame {
                 dialog.setLocationRelativeTo(this);
                 dialog.setVisible(true);
             } else {
-                // Show Table
                 String[] codes = HuffmanTree.generateCodes(root);
                 String[] cols = {"Byte", "Char", "Freq", "Code"};
                 DefaultTableModel model = new DefaultTableModel(cols, 0);
@@ -236,34 +221,74 @@ public class HuffmanGUI extends JFrame {
     }
 
     private void startCompression() {
-        if (selectedCompressFile == null) return;
-        progressBar.setIndeterminate(true);
-        log("⏳ Compressing...");
+        if (selectedCompressFile == null) {
+            JOptionPane.showMessageDialog(this, "Please select a file first.");
+            return;
+        }
+
+        // --- NEW: Save Dialog ---
+        JFileChooser fileChooser = new JFileChooser(selectedCompressFile.getParent());
+        fileChooser.setDialogTitle("Save Compressed File As");
+        // Default name: original.huff
+        fileChooser.setSelectedFile(new File(selectedCompressFile.getName() + ".huff"));
         
-        new Thread(() -> {
-            try {
-                long start = System.currentTimeMillis();
-                String outPath = selectedCompressFile.getAbsolutePath() + ".huff";
-                HuffmanCompressor.compress(selectedCompressFile.getAbsolutePath(), outPath);
-                long time = System.currentTimeMillis() - start;
-                
-                File original = new File(selectedCompressFile.getAbsolutePath());
-                File compressed = new File(outPath);
-                
-                SwingUtilities.invokeLater(() -> {
-                    progressBar.setIndeterminate(false);
-                    progressBar.setValue(100);
-                    log("✅ Compression Complete in " + time + "ms");
-                    log("   Original: " + original.length() + " bytes");
-                    log("   Compressed: " + compressed.length() + " bytes");
-                    JOptionPane.showMessageDialog(this, "Compression Successful!");
-                });
-            } catch (Exception e) { handleError(e); }
-        }).start();
+        int userSelection = fileChooser.showSaveDialog(this);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+            // Ensure extension is .huff
+            if (!fileToSave.getName().toLowerCase().endsWith(".huff")) {
+                fileToSave = new File(fileToSave.getAbsolutePath() + ".huff");
+            }
+
+            final String outputPath = fileToSave.getAbsolutePath();
+            progressBar.setIndeterminate(true);
+            log("⏳ Compressing to: " + fileToSave.getName());
+            
+            new Thread(() -> {
+                try {
+                    long start = System.currentTimeMillis();
+                    HuffmanCompressor.compress(selectedCompressFile.getAbsolutePath(), outputPath);
+                    long time = System.currentTimeMillis() - start;
+                    
+                    File original = new File(selectedCompressFile.getAbsolutePath());
+                    File compressed = new File(outputPath);
+                    
+                    // Calculate Ratio
+                    long origSize = original.length();
+                    long compSize = compressed.length();
+                    double spaceSaved = 0.0;
+                    if (origSize > 0) spaceSaved = 100.0 * (origSize - compSize) / origSize;
+
+                    final double finalSaved = spaceSaved;
+
+                    SwingUtilities.invokeLater(() -> {
+                        progressBar.setIndeterminate(false);
+                        progressBar.setValue(100);
+                        log("✅ Complete in " + time + "ms");
+                        log("   Original: " + origSize + " bytes");
+                        log("   Compressed: " + compSize + " bytes");
+                        
+                        if (finalSaved >= 0) {
+                            log(String.format("   Space Saved: %.2f%%", finalSaved));
+                        } else {
+                            log(String.format("   Size Change: %.2f%% (Expanded)", finalSaved));
+                        }
+                        JOptionPane.showMessageDialog(this, "Compression Successful!\nSaved to: " + outputPath);
+                    });
+                } catch (Exception e) { handleError(e); }
+            }).start();
+        } else {
+            log("🚫 Compression cancelled by user.");
+        }
     }
 
     private void startDecompression() {
-        if (selectedDecompressFile == null) return;
+        if (selectedDecompressFile == null) {
+            JOptionPane.showMessageDialog(this, "Please select a file first.");
+            return;
+        }
+        
         progressBar.setIndeterminate(true);
         log("⏳ Decompressing...");
         
