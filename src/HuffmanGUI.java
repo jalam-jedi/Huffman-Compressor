@@ -1,9 +1,9 @@
 import java.awt.*;
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.table.DefaultTableModel;
 
@@ -11,314 +11,454 @@ public class HuffmanGUI extends JFrame {
 
     private JTextArea logArea;
     private JProgressBar progressBar;
-    private File selectedCompressFile;
+    
+    // --- State Variables ---
+    private File selectedInputFile; // The file/folder user selected
+    private JLabel inputFileLabel;
+    
+    // We track the last file we created so the next step is easy
+    private File lastGeneratedFile; 
+    
+    // Decompression State
     private File selectedDecompressFile;
-    private JLabel compressFileLabel;
     private JLabel decompressFileLabel;
 
-    // Colors for styling
-    private final Color COLOR_PRIMARY = new Color(0, 122, 255); // Blue
-    private final Color COLOR_SUCCESS = new Color(40, 167, 69); // Green
+    // Networking State
+    private JTextField ipField;
 
     public HuffmanGUI() {
-        setTitle("Universal Huffman Compressor");
-        setSize(900, 650);
+        setTitle("Universal Secure Compressor");
+        setSize(1000, 800); // Slightly taller for separated buttons
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // --- 1. Header Section ---
+        // --- Header ---
         JPanel headerPanel = new JPanel();
         headerPanel.setBackground(new Color(30, 30, 30));
         headerPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
-        JLabel titleLabel = new JLabel("HUFFMAN COMPRESSOR PRO");
+        JLabel titleLabel = new JLabel("HUFFMAN SECURE SUITE");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         titleLabel.setForeground(Color.WHITE);
         headerPanel.add(titleLabel);
         add(headerPanel, BorderLayout.NORTH);
 
-        // --- 2. Main Tabs ---
+        // --- Tabs ---
         JTabbedPane tabbedPane = new JTabbedPane();
         tabbedPane.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        tabbedPane.addTab("  Compression Dashboard  ", createCompressPanel());
-        tabbedPane.addTab("  Decompression Utility  ", createDecompressPanel());
+        tabbedPane.addTab(" 1. Compression & Encryption ", createMainPanel());
+        tabbedPane.addTab(" 2. Decryption & Restore ", createDecompressPanel());
+        tabbedPane.addTab(" 3. Network Transfer ", createNetworkPanel());
         add(tabbedPane, BorderLayout.CENTER);
 
-        // --- 3. Status Footer ---
+        // --- Footer ---
         JPanel footerPanel = new JPanel(new BorderLayout());
-        footerPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
-        
-        logArea = new JTextArea(6, 60);
+        logArea = new JTextArea(8, 60);
         logArea.setEditable(false);
         logArea.setFont(new Font("Consolas", Font.PLAIN, 12));
-        logArea.setBackground(new Color(240, 240, 240)); 
-        
         progressBar = new JProgressBar();
         progressBar.setStringPainted(true);
-        progressBar.setPreferredSize(new Dimension(100, 25));
 
         footerPanel.add(new JScrollPane(logArea), BorderLayout.CENTER);
         footerPanel.add(progressBar, BorderLayout.SOUTH);
-        
         add(footerPanel, BorderLayout.SOUTH);
 
         setLocationRelativeTo(null);
-        log("✅ System Initialized. Ready.");
+        log("✅ System Ready.");
     }
 
-    private JPanel createCompressPanel() {
+    // ==================== PANEL 1: SEPARATED COMPRESS / ENCRYPT ====================
+    private JPanel createMainPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(new EmptyBorder(20, 40, 20, 40));
         GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 10, 8, 10); // Better spacing
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(10, 10, 10, 10);
 
-        JLabel step1 = new JLabel("Step 1: Input Source");
-        step1.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        // --- UI ELEMENTS ---
+        JButton selectBtn = new JButton("📂 Step 1: Select Source File/Folder");
+        selectBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        inputFileLabel = new JLabel("No selection");
+        inputFileLabel.setForeground(Color.BLUE);
         
-        JButton selectBtn = new JButton("📂 Select File");
-        compressFileLabel = new JLabel("No file selected");
-        compressFileLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
-        
-        JLabel step2 = new JLabel("Step 2: Analysis");
-        step2.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        
-        JPanel analysisButtons = new JPanel(new GridLayout(1, 2, 10, 0));
-        JButton viewTableBtn = new JButton("📊 View Code Table");
+        // Analysis Group
+        JPanel analysisPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        JButton viewTableBtn = new JButton("📊 View Frequencies");
         JButton viewTreeBtn = new JButton("🌳 Visualize Tree");
-        analysisButtons.add(viewTableBtn);
-        analysisButtons.add(viewTreeBtn);
+        analysisPanel.add(viewTableBtn);
+        analysisPanel.add(viewTreeBtn);
 
-        JLabel step3 = new JLabel("Step 3: Execute");
-        step3.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        // Action Buttons (Separated)
+        JButton compressBtn = new JButton("⬇ Step 2: COMPRESS (Huffman)");
+        compressBtn.setBackground(new Color(0, 122, 255)); // Blue
+        compressBtn.setForeground(Color.WHITE);
+        compressBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+
+        JButton encryptBtn = new JButton("🔒 Step 3: ENCRYPT (AES-256)");
+        encryptBtn.setBackground(new Color(220, 53, 69)); // Red
+        encryptBtn.setForeground(Color.WHITE);
+        encryptBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+
+        // --- LAYOUT ---
+        gbc.gridx = 0; gbc.gridy = 0; panel.add(selectBtn, gbc);
+        gbc.gridy = 1; panel.add(inputFileLabel, gbc);
+        gbc.gridy = 2; panel.add(new JSeparator(), gbc);
         
-        JButton runBtn = new JButton("💾 Save Compressed File As...");
-        runBtn.setBackground(COLOR_SUCCESS);
-        runBtn.setForeground(Color.WHITE);
-        runBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        runBtn.setFocusPainted(false);
+        gbc.gridy = 3; panel.add(new JLabel("Analysis Tools (Optional):"), gbc);
+        gbc.gridy = 4; panel.add(analysisPanel, gbc);
+        gbc.gridy = 5; panel.add(new JSeparator(), gbc);
+        
+        gbc.gridy = 6; panel.add(compressBtn, gbc);
+        gbc.gridy = 7; panel.add(new JLabel("<html><i>Creates a compressed .huff file</i></html>", SwingConstants.CENTER), gbc);
+        
+        gbc.gridy = 8; panel.add(new Box.Filler(new Dimension(0,20), new Dimension(0,20), new Dimension(0,20)), gbc); // Spacer
+        
+        gbc.gridy = 9; panel.add(encryptBtn, gbc);
+        gbc.gridy = 10; panel.add(new JLabel("<html><i>Secures any file with a password (.enc)</i></html>", SwingConstants.CENTER), gbc);
 
-        // -- Layout --
-        gbc.gridx = 0; gbc.gridy = 0; panel.add(step1, gbc);
-        gbc.gridy = 1; panel.add(selectBtn, gbc);
-        gbc.gridy = 2; panel.add(compressFileLabel, gbc);
-        gbc.gridy = 3; panel.add(new JSeparator(), gbc);
-        gbc.gridy = 4; panel.add(step2, gbc);
-        gbc.gridy = 5; panel.add(analysisButtons, gbc);
-        gbc.gridy = 6; panel.add(new JSeparator(), gbc);
-        gbc.gridy = 7; panel.add(step3, gbc);
-        gbc.gridy = 8; gbc.ipady = 15; panel.add(runBtn, gbc);
-
-        // -- Listeners --
+        // --- LISTENERS ---
         selectBtn.addActionListener(e -> {
-            // UPDATED: Start in User's Documents/Home folder
             JFileChooser fc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+            fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
             if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                selectedCompressFile = fc.getSelectedFile();
-                compressFileLabel.setText(selectedCompressFile.getName());
-                log("File selected: " + selectedCompressFile.getName());
+                selectedInputFile = fc.getSelectedFile();
+                // Reset last generated so we encrypt the NEW selection, not the old one
+                lastGeneratedFile = null; 
+                String type = selectedInputFile.isDirectory() ? "[FOLDER] " : "[FILE] ";
+                inputFileLabel.setText(type + selectedInputFile.getName());
+                log("Selected: " + type + selectedInputFile.getAbsolutePath());
             }
         });
 
         viewTableBtn.addActionListener(e -> analyzeFile(false));
         viewTreeBtn.addActionListener(e -> analyzeFile(true));
-        runBtn.addActionListener(e -> startCompression());
+        
+        compressBtn.addActionListener(e -> startCompressionOnly());
+        encryptBtn.addActionListener(e -> startEncryptionOnly());
 
         return panel;
     }
 
+    // ==================== PANEL 2: DECOMPRESSION ====================
     private JPanel createDecompressPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(new EmptyBorder(20, 40, 20, 40));
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        JLabel step1 = new JLabel("Step 1: Select Compressed File");
-        step1.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        JButton selectBtn = new JButton("📂 Select File (.enc or .huff)");
+        decompressFileLabel = new JLabel("No selection");
         
-        JButton selectBtn = new JButton("📂 Select .huff File");
-        decompressFileLabel = new JLabel("No file selected");
-        decompressFileLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+        JButton decryptBtn = new JButton("🔓 Decrypt (.enc -> .huff)");
+        decryptBtn.setBackground(new Color(220, 53, 69));
+        decryptBtn.setForeground(Color.WHITE);
         
-        JLabel step2 = new JLabel("Step 2: Restore");
-        step2.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        
-        JButton runBtn = new JButton("↺ START DECOMPRESSION");
-        runBtn.setBackground(COLOR_PRIMARY);
-        runBtn.setForeground(Color.WHITE);
-        runBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        runBtn.setFocusPainted(false);
+        JButton decompressBtn = new JButton("📈 Decompress (.huff -> Original)");
+        decompressBtn.setBackground(new Color(40, 167, 69));
+        decompressBtn.setForeground(Color.WHITE);
 
-        gbc.gridx = 0; gbc.gridy = 0; panel.add(step1, gbc);
+        gbc.gridx = 0; gbc.gridy = 0; panel.add(new JLabel("Step 1: Choose File"), gbc);
         gbc.gridy = 1; panel.add(selectBtn, gbc);
         gbc.gridy = 2; panel.add(decompressFileLabel, gbc);
         gbc.gridy = 3; panel.add(new JSeparator(), gbc);
-        gbc.gridy = 4; panel.add(step2, gbc);
-        gbc.gridy = 5; gbc.ipady = 15; panel.add(runBtn, gbc);
+        gbc.gridy = 4; panel.add(decryptBtn, gbc);
+        gbc.gridy = 5; panel.add(decompressBtn, gbc);
 
         selectBtn.addActionListener(e -> {
-            // UPDATED: Start in User's Documents/Home folder
-            JFileChooser fc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
-            fc.setFileFilter(new FileNameExtensionFilter("Huffman Files (.huff)", "huff"));
-            
+            JFileChooser fc = new JFileChooser();
             if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
                 selectedDecompressFile = fc.getSelectedFile();
                 decompressFileLabel.setText(selectedDecompressFile.getName());
-                log("Archive selected: " + selectedDecompressFile.getName());
+                log("Selected for Restore: " + selectedDecompressFile.getName());
             }
         });
 
-        runBtn.addActionListener(e -> startDecompression());
+        decryptBtn.addActionListener(e -> startDecryptionOnly());
+        decompressBtn.addActionListener(e -> startDecompressionOnly());
 
         return panel;
     }
 
-    // --- Core Logic ---
+    // ==================== PANEL 3: NETWORK ====================
+    private JPanel createNetworkPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-    private void analyzeFile(boolean visualizeTree) {
-        if (selectedCompressFile == null) {
-            JOptionPane.showMessageDialog(this, "Please select a file first.");
-            return;
-        }
-        
-        try {
-            int[] frequencies = new int[256];
-            try (FileInputStream fis = new FileInputStream(selectedCompressFile)) {
-                int b;
-                while ((b = fis.read()) != -1) frequencies[b]++;
+        // Sender
+        JPanel senderPanel = new JPanel(new GridLayout(3, 1, 5, 5));
+        senderPanel.setBorder(BorderFactory.createTitledBorder("Sender Mode"));
+        ipField = new JTextField("127.0.0.1");
+        JButton sendBtn = new JButton("📡 Send Last Processed File");
+        senderPanel.add(new JLabel("Receiver IP:"));
+        senderPanel.add(ipField);
+        senderPanel.add(sendBtn);
+
+        // Receiver
+        JPanel receiverPanel = new JPanel(new GridLayout(2, 1, 5, 5));
+        receiverPanel.setBorder(BorderFactory.createTitledBorder("Receiver Mode"));
+        JButton startServerBtn = new JButton("🎧 Start Listening (Port 5000)");
+        receiverPanel.add(startServerBtn);
+
+        gbc.gridx = 0; gbc.gridy = 0; panel.add(senderPanel, gbc);
+        gbc.gridy = 1; panel.add(receiverPanel, gbc);
+
+        sendBtn.addActionListener(e -> {
+            File fileToSend = (lastGeneratedFile != null) ? lastGeneratedFile : selectedInputFile;
+            if (fileToSend == null || !fileToSend.exists()) {
+                JOptionPane.showMessageDialog(this, "No file selected or generated to send!");
+                return;
             }
+            NetworkModule.sendFile(fileToSend, ipField.getText(), 5000, logArea);
+        });
 
-            HuffmanNode root = HuffmanTree.buildTree(frequencies);
-
-            if (visualizeTree) {
-                JDialog dialog = new JDialog(this, "Huffman Tree Visualization", true);
-                TreePanel treePanel = new TreePanel(root);
-                JScrollPane scroll = new JScrollPane(treePanel);
-                dialog.add(scroll);
-                dialog.setSize(800, 600);
-                dialog.setLocationRelativeTo(this);
-                dialog.setVisible(true);
-            } else {
-                String[] codes = HuffmanTree.generateCodes(root);
-                String[] cols = {"Byte", "Char", "Freq", "Code"};
-                DefaultTableModel model = new DefaultTableModel(cols, 0);
-                for(int i=0; i<256; i++) {
-                    if(frequencies[i] > 0) {
-                        String ch = (i > 32 && i < 127) ? String.valueOf((char)i) : "0x"+Integer.toHexString(i);
-                        model.addRow(new Object[]{i, ch, frequencies[i], codes[i]});
-                    }
-                }
-                JTable table = new JTable(model);
-                JDialog d = new JDialog(this, "Encoding Table");
-                d.add(new JScrollPane(table));
-                d.setSize(500, 600);
-                d.setLocationRelativeTo(this);
-                d.setVisible(true);
+        startServerBtn.addActionListener(e -> {
+            JFileChooser fc = new JFileChooser();
+            fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                NetworkModule.startServer(5000, fc.getSelectedFile(), logArea);
+                startServerBtn.setEnabled(false);
+                startServerBtn.setText("Running...");
             }
-        } catch (Exception e) {
-            handleError(e);
-        }
+        });
+
+        return panel;
     }
 
-    private void startCompression() {
-        if (selectedCompressFile == null) {
-            JOptionPane.showMessageDialog(this, "Please select a file first.");
+    // ==================== LOGIC: COMPRESSION ====================
+    private void startCompressionOnly() {
+        if (selectedInputFile == null) {
+            JOptionPane.showMessageDialog(this, "Please select a file or folder first.");
             return;
         }
 
-        // --- NEW: Save Dialog ---
-        JFileChooser fileChooser = new JFileChooser(selectedCompressFile.getParent());
+        // SAVE AS DIALOG
+        JFileChooser fileChooser = new JFileChooser(selectedInputFile.getParent());
         fileChooser.setDialogTitle("Save Compressed File As");
-        // Default name: original.huff
-        fileChooser.setSelectedFile(new File(selectedCompressFile.getName() + ".huff"));
-        
-        int userSelection = fileChooser.showSaveDialog(this);
+        String defaultName = selectedInputFile.getName() + (selectedInputFile.isDirectory() ? ".tar.huff" : ".huff");
+        fileChooser.setSelectedFile(new File(defaultName));
 
-        if (userSelection == JFileChooser.APPROVE_OPTION) {
-            File fileToSave = fileChooser.getSelectedFile();
-            // Ensure extension is .huff
-            if (!fileToSave.getName().toLowerCase().endsWith(".huff")) {
-                fileToSave = new File(fileToSave.getAbsolutePath() + ".huff");
-            }
+        if (fileChooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
 
-            final String outputPath = fileToSave.getAbsolutePath();
-            progressBar.setIndeterminate(true);
-            log("⏳ Compressing to: " + fileToSave.getName());
-            
-            new Thread(() -> {
-                try {
-                    long start = System.currentTimeMillis();
-                    HuffmanCompressor.compress(selectedCompressFile.getAbsolutePath(), outputPath);
-                    long time = System.currentTimeMillis() - start;
-                    
-                    File original = new File(selectedCompressFile.getAbsolutePath());
-                    File compressed = new File(outputPath);
-                    
-                    // Calculate Ratio
-                    long origSize = original.length();
-                    long compSize = compressed.length();
-                    double spaceSaved = 0.0;
-                    if (origSize > 0) spaceSaved = 100.0 * (origSize - compSize) / origSize;
-
-                    final double finalSaved = spaceSaved;
-
-                    SwingUtilities.invokeLater(() -> {
-                        progressBar.setIndeterminate(false);
-                        progressBar.setValue(100);
-                        log("✅ Complete in " + time + "ms");
-                        log("   Original: " + origSize + " bytes");
-                        log("   Compressed: " + compSize + " bytes");
-                        
-                        if (finalSaved >= 0) {
-                            log(String.format("   Space Saved: %.2f%%", finalSaved));
-                        } else {
-                            log(String.format("   Size Change: %.2f%% (Expanded)", finalSaved));
-                        }
-                        JOptionPane.showMessageDialog(this, "Compression Successful!\nSaved to: " + outputPath);
-                    });
-                } catch (Exception e) { handleError(e); }
-            }).start();
-        } else {
-            log("🚫 Compression cancelled by user.");
+        File destination = fileChooser.getSelectedFile();
+        // Force extension
+        if (!destination.getName().endsWith(".huff")) {
+            destination = new File(destination.getAbsolutePath() + ".huff");
         }
-    }
+        final File finalDest = destination;
 
-    private void startDecompression() {
-        if (selectedDecompressFile == null) {
-            JOptionPane.showMessageDialog(this, "Please select a file first.");
-            return;
-        }
-        
         progressBar.setIndeterminate(true);
-        log("⏳ Decompressing...");
-        
         new Thread(() -> {
             try {
                 long start = System.currentTimeMillis();
-                HuffmanCompressor.decompress(selectedDecompressFile.getAbsolutePath());
+                File input = selectedInputFile;
+                File tempTar = null;
+
+                // 1. If Folder -> Archive
+                if (input.isDirectory()) {
+                    log("📂 Folder detected. Archiving...");
+                    tempTar = new File(input.getParent(), input.getName() + ".tar");
+                    new Archiver().createArchive(input, tempTar);
+                    input = tempTar; // Now we compress the tar
+                }
+
+                // 2. Compress
+                log("📉 Compressing...");
+                HuffmanCompressor.compress(input.getAbsolutePath(), finalDest.getAbsolutePath());
+
+                // Cleanup
+                if (tempTar != null) tempTar.delete();
+
+                lastGeneratedFile = finalDest; // Store for encryption step
                 long time = System.currentTimeMillis() - start;
-                
+
                 SwingUtilities.invokeLater(() -> {
                     progressBar.setIndeterminate(false);
-                    progressBar.setValue(100);
-                    log("✅ Decompression Complete in " + time + "ms");
-                    JOptionPane.showMessageDialog(this, "Decompression Successful!");
+                    log("✅ Compressed: " + finalDest.getName() + " (" + time + "ms)");
+                    JOptionPane.showMessageDialog(this, "Compression Successful!\nSaved to: " + finalDest.getAbsolutePath());
+                    
+                    // Auto-update selection for next step
+                    int response = JOptionPane.showConfirmDialog(this, "Do you want to Encrypt this file now?", "Next Step", JOptionPane.YES_NO_OPTION);
+                    if (response == JOptionPane.YES_OPTION) {
+                        selectedInputFile = finalDest;
+                        inputFileLabel.setText("[FILE] " + finalDest.getName());
+                    }
+                });
+            } catch (Exception e) {
+                handleError(e);
+            }
+        }).start();
+    }
+
+    // ==================== LOGIC: ENCRYPTION ====================
+    private void startEncryptionOnly() {
+        if (selectedInputFile == null) {
+            JOptionPane.showMessageDialog(this, "Please select a file to Encrypt.");
+            return;
+        }
+        if (selectedInputFile.isDirectory()) {
+            JOptionPane.showMessageDialog(this, "Cannot encrypt a folder directly.\nPlease COMPRESS it first.");
+            return;
+        }
+
+        String password = JOptionPane.showInputDialog(this, "Create Password:");
+        if (password == null || password.isEmpty()) return;
+
+        JFileChooser fileChooser = new JFileChooser(selectedInputFile.getParent());
+        fileChooser.setDialogTitle("Save Encrypted File As");
+        fileChooser.setSelectedFile(new File(selectedInputFile.getName() + ".enc"));
+
+        if (fileChooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        File dest = fileChooser.getSelectedFile();
+        if(!dest.getName().endsWith(".enc")) dest = new File(dest.getAbsolutePath() + ".enc");
+        final File finalDest = dest;
+
+        progressBar.setIndeterminate(true);
+        new Thread(() -> {
+            try {
+                log("🔒 Encrypting...");
+                CryptoModule.encrypt(selectedInputFile, finalDest, password);
+                lastGeneratedFile = finalDest;
+                SwingUtilities.invokeLater(() -> {
+                    progressBar.setIndeterminate(false);
+                    log("✅ Encrypted: " + finalDest.getName());
+                    JOptionPane.showMessageDialog(this, "Encryption Complete!");
                 });
             } catch (Exception e) { handleError(e); }
         }).start();
     }
 
-    private void log(String msg) {
-        logArea.append(msg + "\n");
-        logArea.setCaretPosition(logArea.getDocument().getLength());
+    // ==================== LOGIC: RESTORATION ====================
+    private void startDecryptionOnly() {
+        if (selectedDecompressFile == null) return;
+        String pass = JOptionPane.showInputDialog(this, "Enter Password:");
+        if (pass == null) return;
+
+        progressBar.setIndeterminate(true);
+        new Thread(() -> {
+            try {
+                log("🔓 Decrypting...");
+                String outName = selectedDecompressFile.getAbsolutePath().replace(".enc", "");
+                if (!outName.endsWith(".huff")) outName += ".huff"; // Safe guess
+                File outFile = new File(outName);
+
+                CryptoModule.decrypt(selectedDecompressFile, outFile, pass);
+                
+                SwingUtilities.invokeLater(() -> {
+                    progressBar.setIndeterminate(false);
+                    log("✅ Decrypted to: " + outFile.getName());
+                    JOptionPane.showMessageDialog(this, "Decryption Complete. Now you can Decompress.");
+                    // Auto-select for next step
+                    selectedDecompressFile = outFile;
+                    decompressFileLabel.setText(outFile.getName());
+                });
+            } catch (Exception e) { handleError(e); }
+        }).start();
     }
 
+    private void startDecompressionOnly() {
+        if (selectedDecompressFile == null) return;
+        
+        progressBar.setIndeterminate(true);
+        new Thread(() -> {
+            try {
+                log("📈 Decompressing...");
+                String restoredPath = HuffmanCompressor.decompress(selectedDecompressFile.getAbsolutePath());
+                File restoredFile = new File(restoredPath);
+
+                // Check for Archive
+                if (restoredFile.getName().endsWith(".tar")) {
+                    log("📦 Unpacking Archive...");
+                    File outDir = new File(restoredFile.getParent(), restoredFile.getName().replace(".tar", ""));
+                    new Unarchiver().unpackArchive(restoredFile, outDir);
+                    restoredFile.delete(); 
+                    log("✅ Restored Folder: " + outDir.getName());
+                } else {
+                    log("✅ Restored File: " + restoredFile.getName());
+                }
+
+                SwingUtilities.invokeLater(() -> {
+                    progressBar.setIndeterminate(false);
+                    JOptionPane.showMessageDialog(this, "Restoration Finished!");
+                });
+            } catch (Exception e) { handleError(e); }
+        }).start();
+    }
+
+    // ==================== ANALYSIS LOGIC (FIXED) ====================
+    private void analyzeFile(boolean visualizeTree) {
+        if (selectedInputFile == null) {
+            JOptionPane.showMessageDialog(this, "Please select a file first.");
+            return;
+        }
+
+        // --- FIXED: AUTO-GENERATE TEMP ARCHIVE FOR FOLDERS ---
+        File fileToAnalyze = selectedInputFile;
+        File tempTar = null;
+
+        if (selectedInputFile.isDirectory()) {
+            log("⏳ Creating temporary archive for visualization...");
+            try {
+                // Create a temp .tar just for the visualizer
+                tempTar = File.createTempFile("huff_viz_", ".tar");
+                new Archiver().createArchive(selectedInputFile, tempTar);
+                fileToAnalyze = tempTar;
+            } catch (Exception e) {
+                handleError(e);
+                return;
+            }
+        }
+
+        final File finalFile = fileToAnalyze;
+        final File tarCleanup = tempTar;
+
+        progressBar.setIndeterminate(true);
+        new Thread(() -> {
+            try {
+                int[] frequencies = new int[256];
+                try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(finalFile))) {
+                    int b;
+                    while ((b = bis.read()) != -1) frequencies[b]++;
+                }
+
+                HuffmanNode root = HuffmanTree.buildTree(frequencies);
+
+                SwingUtilities.invokeLater(() -> {
+                    progressBar.setIndeterminate(false);
+                    if (visualizeTree) {
+                        JDialog d = new JDialog(this, "Tree Visualization", true);
+                        d.add(new JScrollPane(new TreePanel(root)));
+                        d.setSize(1000, 700);
+                        d.setLocationRelativeTo(this);
+                        d.setVisible(true);
+                    } else {
+                        // Show Table (Simplified for brevity, same as before)
+                        String[] codes = HuffmanTree.generateCodes(root);
+                        String[] cols = {"Byte", "Freq", "Code"};
+                        DefaultTableModel model = new DefaultTableModel(cols, 0);
+                        for(int i=0; i<256; i++) {
+                            if(frequencies[i]>0) model.addRow(new Object[]{i, frequencies[i], codes[i]});
+                        }
+                        JDialog d = new JDialog(this, "Frequencies");
+                        d.add(new JScrollPane(new JTable(model)));
+                        d.setSize(500,600);
+                        d.setVisible(true);
+                    }
+                });
+                
+                // Cleanup temp file
+                if (tarCleanup != null) tarCleanup.delete();
+
+            } catch (Exception e) { handleError(e); }
+        }).start();
+    }
+
+    private void log(String msg) { SwingUtilities.invokeLater(() -> logArea.append(msg + "\n")); }
     private void handleError(Exception e) {
         SwingUtilities.invokeLater(() -> {
             progressBar.setIndeterminate(false);
             log("❌ Error: " + e.getMessage());
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
         });
     }
 }

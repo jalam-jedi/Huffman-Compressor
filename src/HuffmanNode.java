@@ -1,4 +1,3 @@
-
 public class HuffmanNode implements Comparable<HuffmanNode> {
     
     public int frequency;
@@ -6,12 +5,21 @@ public class HuffmanNode implements Comparable<HuffmanNode> {
     public HuffmanNode left;
     public HuffmanNode right;
 
-    // Constructor
+    // 1. Constructor for Leaf Nodes (Actual data)
     public HuffmanNode(int data, int frequency) {
         this.data = data;
         this.frequency = frequency;
         this.left = null;
         this.right = null;
+    }
+
+    // 2. CRITICAL MISSING PIECE: Constructor for Internal Nodes
+    // This merges two smaller nodes into one parent node
+    public HuffmanNode(HuffmanNode left, HuffmanNode right) {
+        this.data = -1; // -1 means "I am just a connector, I hold no data"
+        this.frequency = left.frequency + right.frequency;
+        this.left = left;
+        this.right = right;
     }
 
     /*
@@ -33,7 +41,9 @@ public class HuffmanNode implements Comparable<HuffmanNode> {
     
     @Override
     public String toString() {
-        String type = isLeaf() ? "Leaf: " + (char)data : "Internal";
+        // Safe printing: If data is a printable character, show it. Otherwise show the number.
+        String dataStr = (data > 32 && data < 127) ? "'" + (char)data + "'" : String.valueOf(data);
+        String type = isLeaf() ? "Leaf: " + dataStr : "Internal";
         return type + " (" + frequency + ")";
     }
 }

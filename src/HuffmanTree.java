@@ -13,6 +13,7 @@ public class HuffmanTree {
         // 1. Create a leaf node for every byte that appears in the file
         for (int i = 0; i < frequencies.length; i++) {
             if (frequencies[i] > 0) {
+                // Constructor 1: Leaf Node (Data + Frequency)
                 queue.add(new HuffmanNode(i, frequencies[i]));
             }
         }
@@ -26,8 +27,9 @@ public class HuffmanTree {
         // We need at least one edge to generate a code (like "0"), so we artificially add a parent.
         if (queue.size() == 1) {
             HuffmanNode onlyNode = queue.poll();
+            // Manually create a parent that points to this single node
             HuffmanNode parent = new HuffmanNode(-1, onlyNode.frequency);
-            parent.left = onlyNode;
+            parent.left = onlyNode; 
             return parent;
         }
 
@@ -37,10 +39,9 @@ public class HuffmanTree {
             HuffmanNode min1 = queue.poll(); // Smallest
             HuffmanNode min2 = queue.poll(); // Second smallest
 
-            // Create parent with sum of frequencies
-            HuffmanNode parent = new HuffmanNode(-1, min1.frequency + min2.frequency);
-            parent.left = min1;
-            parent.right = min2;
+            // Constructor 2: Internal Node (Left + Right)
+            // This automatically calculates the sum of frequencies and sets data to -1
+            HuffmanNode parent = new HuffmanNode(min1, min2);
 
             // Put parent back into queue
             queue.add(parent);
@@ -67,7 +68,10 @@ public class HuffmanTree {
 
         // If we found a leaf, save the code
         if (node.isLeaf()) {
-            codes[node.data] = currentCode;
+            // Safety check: Ensure data is within valid byte range (0-255)
+            if (node.data >= 0 && node.data < 256) {
+                codes[node.data] = currentCode;
+            }
             return;
         }
 

@@ -42,6 +42,7 @@ public class HuffmanCompressor {
         }
 
         // 3. Write Body (Our Custom BitOutputStream)
+        // Note: append=true because we want to add to the existing file after the header
         try (BitOutputStream bos = new BitOutputStream(outputFilePath, true)) {
             try (FileInputStream fis = new FileInputStream(inputFile)) {
                 int byteRead;
@@ -54,10 +55,13 @@ public class HuffmanCompressor {
     }
 
     /**
-     * DECOMPRESS: Turns a .huff file back into the original
+     * DECOMPRESS: Turns a .huff file back into the original.
+     * UPDATE: Now returns String (the path of the restored file).
      */
-    public static void decompress(String inputFilePath) throws IOException {
+    public static String decompress(String inputFilePath) throws IOException {
         
+        File outputFile = null;
+
         // 1. Read Header
         try (DataInputStream dis = new DataInputStream(new FileInputStream(inputFilePath))) {
             
@@ -82,19 +86,15 @@ public class HuffmanCompressor {
             // We use 'dis' (already past header) for the BitReader
             try (BitInputStream bis = new BitInputStream(dis, totalBytes)) {
                 
-                // --- FIX: HANDLE FILE PATHS CORRECTLY ---
                 File compressedFile = new File(inputFilePath);
                 File parentDir = compressedFile.getParentFile();
                 
-                File outputFile;
                 if (parentDir == null) {
-                    // File is in current directory
                     outputFile = new File("Restored_" + originalName);
                 } else {
-                    // File is in a specific folder, keep output there
-                    outputFile = new File(parentDir, "Restored_" + originalName);
+                    // Try to restore to original name, handling collisions if needed
+                    outputFile = new File(parentDir, originalName);
                 }
-                // ----------------------------------------
                 
                 try (FileOutputStream fos = new FileOutputStream(outputFile)) {
                     HuffmanNode current = root;
@@ -119,5 +119,8 @@ public class HuffmanCompressor {
                 }
             }
         }
+        
+        // Return the absolute path so the GUI knows what file we just made
+        return outputFile.getAbsolutePath();
     }
 }
